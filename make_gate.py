@@ -186,7 +186,7 @@ h1{{font-size:20px;font-weight:800;color:#fff;margin-bottom:6px;letter-spacing:-
     </div>
   </div>
 
-  <div class="badge">W21 · T5/2026 · Nội bộ · v4</div>
+  <div class="badge">W21 · T5/2026 · Nội bộ · v5</div>
   <h1>Xem báo cáo</h1>
   <p class="sub">Nhập mật khẩu để truy cập báo cáo tuần này.</p>
 
@@ -234,26 +234,21 @@ const open = hash => {{
   try{{
     const bytes = Uint8Array.from(atob(C), c=>c.charCodeAt(0));
     const html  = new TextDecoder().decode(bytes);
-    // Try Blob URL first, fallback to document.write
-    try {{
-      const url = URL.createObjectURL(new Blob([html],{{type:'text/html;charset=utf-8'}}));
-      window.location.replace(url);
-    }} catch(e2) {{
-      // Fallback: document.write (works in all browsers)
-      document.open(); document.write(html); document.close();
-    }}
-  }} catch(e) {{ alert('Lỗi: '+e.message); }}
+    document.open('text/html','replace');
+    document.write(html);
+    document.close();
+  }} catch(e) {{ alert('Lỗi mở báo cáo: '+e.message); }}
 }};
 
-// auto-login
-(async()=>{{
+// auto-login — wait for DOM ready so document.open works correctly
+window.addEventListener('DOMContentLoaded', async () => {{
   try{{
     const exp = localStorage.getItem(SE);
     if(exp && Date.now()>+exp){{ localStorage.removeItem(SK); localStorage.removeItem(SE); return; }}
     const h = localStorage.getItem(SK)||sessionStorage.getItem(SK);
     if(h===H) open(h);
   }}catch{{}}
-}})();
+}});
 
 async function doLogin(e){{
   e.preventDefault();
