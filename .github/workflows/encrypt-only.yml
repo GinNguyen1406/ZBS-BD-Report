@@ -31,6 +31,7 @@ jobs:
             --password  "$REPORT_PASSWORD" \
             --salt      "$STATICRYPT_SALT" \
             --remember  7 \
+            --short \
             --directory ./encrypted/
           cp ./encrypted/index.html ./index.html
           echo "✅ Encrypted!"
