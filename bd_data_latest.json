@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-27T08:21:16",
+  "generated": "2026-05-27T15:41:14",
   "year": 2026,
   "month": 5,
   "month_abbr": "May",
@@ -33,12 +33,12 @@
       "current_rev_ty": 11.92,
       "prev_rev_ty": 14.5,
       "mom_pct": -17.8,
-      "calls": 8,
-      "emails": 31,
+      "calls": 11,
+      "emails": 39,
       "meetings": 2,
       "tasks": 0,
-      "notes": 2,
-      "total_activities": 43
+      "notes": 3,
+      "total_activities": 55
     },
     "huonglx": {
       "display": "HuongLX",
@@ -85,11 +85,11 @@
       "prev_rev_ty": 8.91,
       "mom_pct": -18.9,
       "calls": 2,
-      "emails": 20,
+      "emails": 21,
       "meetings": 0,
       "tasks": 2,
       "notes": 21,
-      "total_activities": 45
+      "total_activities": 46
     },
     "anhpnv": {
       "display": "AnhPNV",
@@ -130,10 +130,10 @@
     "current_rev_ty": 61.59,
     "prev_rev_ty": 74.93,
     "mom_pct": -17.8,
-    "calls": 31,
-    "emails": 244,
+    "calls": 34,
+    "emails": 253,
     "meetings": 10,
     "tasks": 19,
-    "notes": 68
+    "notes": 69
   }
 }
