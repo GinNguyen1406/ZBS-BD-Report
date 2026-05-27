@@ -199,7 +199,9 @@ async function sha256(str) {{
 }}
 
 function renderReport() {{
-  const html = atob(CONTENT);
+  // atob() returns Latin-1 bytes; use TextDecoder to handle UTF-8 correctly
+  const bytes = Uint8Array.from(atob(CONTENT), c => c.charCodeAt(0));
+  const html = new TextDecoder('utf-8').decode(bytes);
   document.open(); document.write(html); document.close();
 }}
 
