@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZBS BD & CS Report | W21 / T5/2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family:'SVN-Gilroy'; src:local('SVN-Gilroy'),local('Gilroy'); }
+* { margin:0; padding:0; box-sizing:border-box }
+:root {
+  --blue:#0068FF; --cyan:#37DEE7; --pink:#F06BA0; --navy:#021C48;
+  --green:#16A34A; --red:#DC2626; --orange:#D97706; --amber:#F59E0B;
+  --bg:#F0F4FB; --card:#fff; --border:#E2E8F0; --text:#1E293B; --muted:#64748B; --faint:#94A3B8;
+}
+body { font-family:'SVN-Gilroy','Gilroy','Nunito',-apple-system,sans-serif; background:var(--bg); color:var(--text); font-size:15.5px; line-height:1.5 }
+.container { max-width:1600px; margin:0 auto; padding:0 28px }
+
+/* HEADER */
+.header { background:var(--navy); padding:14px 0; position:relative; overflow:hidden }
+.header::before { content:''; position:absolute; right:-60px; top:-40px; width:280px; height:280px; border-radius:50%; background:rgba(0,104,255,0.18); pointer-events:none }
+.header::after { content:''; position:absolute; right:120px; bottom:-60px; width:160px; height:160px; border-radius:50%; background:rgba(55,222,231,0.12); pointer-events:none }
+.header-inner { display:flex; align-items:center; gap:16px; position:relative; z-index:1 }
+.logo { width:40px; height:40px; background:var(--blue); border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15.6px; color:#fff; flex-shrink:0; box-shadow:0 0 0 3px rgba(55,222,231,0.3) }
+.brand-name { font-size:15.6px; font-weight:700; color:#fff }
+.brand-sub { font-size:13.2px; color:rgba(255,255,255,0.55) }
+.header-title { flex:1; text-align:center }
+.report-label { font-size:12.0px; font-weight:600; color:var(--cyan); letter-spacing:2px; text-transform:uppercase }
+.report-title { font-size:24.0px; font-weight:800; color:#fff }
+.header-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px }
+.period-tag { font-size:13.2px; font-weight:700; background:rgba(55,222,231,0.18); color:var(--cyan); border:1px solid rgba(55,222,231,0.35); padding:4px 12px; border-radius:20px }
+.version-nav { display:flex; align-items:center; gap:6px }
+.version-nav label { font-size:12.0px; color:rgba(255,255,255,0.5) }
+.version-select { border:1px solid rgba(255,255,255,0.2); border-radius:6px; background:rgba(255,255,255,0.08); color:#fff; font-size:12.0px; padding:3px 8px; cursor:pointer; font-family:inherit; outline:none }
+.updated { font-size:12.0px; color:rgba(255,255,255,0.4) }
+
+/* TOP NAV */
+.topnav { background:#fff; border-bottom:2px solid var(--border); position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,0.06) }
+.topnav-inner { display:flex }
+.tnav { background:none; border:none; border-bottom:3px solid transparent; margin-bottom:-2px; padding:13px 22px; font-size:14.4px; font-weight:700; color:var(--muted); cursor:pointer; font-family:inherit; transition:all .15s; white-space:nowrap; letter-spacing:.2px }
+.tnav:hover { color:var(--blue) }
+.tnav.active { color:var(--blue); border-bottom-color:var(--blue) }
+.tnav-count { display:inline-block; background:#EFF6FF; color:var(--blue); font-size:10.8px; font-weight:700; padding:1px 5px; border-radius:8px; margin-left:4px }
+
+/* MAIN */
+.main { padding:20px 0 48px }
+.rsec { display:none } .rsec.active { display:block }
+
+/* SECTION */
+.section { margin-bottom:24px }
+.section-title { font-size:13.2px; font-weight:800; color:var(--navy); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:12px; display:flex; align-items:center; gap:8px }
+.section-title::before { content:''; width:3px; height:14px; border-radius:2px; background:linear-gradient(180deg,var(--blue),var(--cyan)); flex-shrink:0 }
+.section-title::after { content:''; flex:1; height:1px; background:var(--border) }
+
+/* CARD */
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,0.06) }
+.card-title { font-size:12.0px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:12px }
+
+/* GRIDS */
+.g2 { display:grid; grid-template-columns:1fr 1fr; gap:14px }
+.g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px }
+.g5 { display:grid; grid-template-columns:repeat(5,1fr); gap:12px }
+.g2-1 { display:grid; grid-template-columns:2fr 1fr; gap:14px }
+.g1-2 { display:grid; grid-template-columns:1fr 2fr; gap:14px }
+
+/* KPI CARDS — colored top accent bar */
+.kpi { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,0.06); position:relative; overflow:hidden }
+.kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--blue),var(--cyan)) }
+.kpi:nth-child(2)::before { background:linear-gradient(90deg,var(--orange),#FCD34D) }
+.kpi:nth-child(3)::before { background:linear-gradient(90deg,var(--red),var(--pink)) }
+.kpi:nth-child(4)::before { background:linear-gradient(90deg,var(--green),var(--cyan)) }
+.kpi:nth-child(5)::before { background:linear-gradient(90deg,var(--pink),#C084FC) }
+.kpi-label { font-size:12.0px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px }
+.kpi-val { font-size:31.2px; font-weight:800; color:#0F172A; line-height:1.1 }
+.kpi-val.blue { color:var(--blue) } .kpi-val.green { color:var(--green) } .kpi-val.red { color:var(--red) } .kpi-val.orange { color:var(--orange) }
+.kpi-sub { font-size:12.0px; color:var(--faint); margin-top:3px }
+.badge { display:inline-block; font-size:10.8px; font-weight:700; padding:2px 7px; border-radius:6px; margin-top:5px }
+.b-green { background:#DCFCE7; color:var(--green) }
+.b-red { background:#FEE2E2; color:var(--red) }
+.b-orange { background:#FEF3C7; color:var(--orange) }
+.b-blue { background:#EFF6FF; color:var(--blue) }
+
+/* STATS */
+.stat-row { display:flex; gap:8px; flex-wrap:wrap }
+.stat { flex:1; min-width:70px; background:#F8FAFC; border:1px solid var(--border); border-radius:8px; padding:10px; text-align:center }
+.stat-val { font-size:21.6px; font-weight:800; color:#0F172A; display:block }
+.stat-val.blue { color:var(--blue) } .stat-val.green { color:var(--green) } .stat-val.red { color:var(--red) }
+.stat-label { font-size:10.8px; font-weight:600; color:var(--faint); text-transform:uppercase; letter-spacing:.5px; margin-top:2px; display:block }
+.stat-delta { font-size:10.8px; margin-top:2px; display:block }
+.up { color:var(--green) } .dn { color:var(--red) } .flat { color:var(--faint) }
+
+/* TABLES */
+.tbl { width:100%; border-collapse:collapse; font-size:14.4px }
+.tbl th { text-align:left; padding:7px 10px; font-size:12.0px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; border-bottom:1px solid var(--border); white-space:nowrap; background:#F8FAFC }
+.tbl th.r { text-align:right }
+.tbl td { padding:8px 10px; border-bottom:1px solid #F1F5F9; color:var(--text); vertical-align:middle }
+.tbl td.r { text-align:right; font-weight:600 }
+.tbl tbody tr:last-child td { border-bottom:none }
+.tbl tbody tr:hover { background:#F8FAFC }
+.tbl-bold { font-weight:700 }
+.tbl-sub { font-size:12.0px; color:var(--faint); margin-top:1px }
+.chip { display:inline-block; font-size:10.8px; font-weight:700; padding:2px 7px; border-radius:5px }
+.chip-red { background:#FEE2E2; color:var(--red) }
+.chip-green { background:#DCFCE7; color:var(--green) }
+.chip-blue { background:#EFF6FF; color:var(--blue) }
+.chip-gray { background:#F1F5F9; color:#475569 }
+
+/* BD TABS */
+.bd-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px }
+.bd-tab { background:#fff; border:1px solid var(--border); border-radius:8px; padding:7px 14px; font-size:13.2px; font-weight:700; color:var(--muted); cursor:pointer; font-family:inherit; transition:all .15s }
+.bd-tab:hover { border-color:var(--blue); color:var(--blue) }
+.bd-tab.active { background:linear-gradient(135deg,#EFF6FF,#F0FDFE); border-color:var(--blue); color:var(--blue); box-shadow:0 2px 6px rgba(0,104,255,0.12) }
+.bd-tab .kpi-chip { font-size:10.8px; margin-left:4px; padding:1px 5px; border-radius:4px }
+.bd-panel { display:none } .bd-panel.active { display:block }
+
+/* BD MEMBER HEADER — colored gradient accent */
+.bd-header { background:linear-gradient(135deg,var(--navy) 0%,#0A3580 100%); border-radius:12px; padding:18px 22px; margin-bottom:16px; display:flex; align-items:center; gap:16px; position:relative; overflow:hidden }
+.bd-header::after { content:''; position:absolute; right:-30px; top:-30px; width:140px; height:140px; border-radius:50%; background:rgba(55,222,231,0.1); pointer-events:none }
+.bd-avatar { width:44px; height:44px; background:rgba(55,222,231,0.2); border:2px solid rgba(55,222,231,0.5); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16.8px; color:var(--cyan); flex-shrink:0; position:relative; z-index:1 }
+.bd-name { font-size:20.4px; font-weight:800; color:#fff; position:relative; z-index:1 }
+.bd-meta { font-size:13.2px; color:rgba(255,255,255,0.6); position:relative; z-index:1 }
+.bd-stats { display:flex; gap:24px; margin-left:auto; position:relative; z-index:1 }
+.bds { text-align:right }
+.bds-val { font-size:24.0px; font-weight:800; display:block; color:#fff }
+.bds-val.red { color:#FCA5A5 } .bds-val.green { color:#6EE7B7 }
+.bds-label { font-size:10.8px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:.5px }
+
+/* PIPELINE */
+.ptbl { width:100%; border-collapse:collapse; font-size:14.4px }
+.ptbl th { text-align:left; padding:8px 12px; font-size:12.0px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; background:#F8FAFC; border-bottom:1px solid var(--border) }
+.ptbl td { padding:10px 12px; border-bottom:1px solid #F1F5F9; vertical-align:top }
+.ptbl tbody tr:last-child td { border-bottom:none }
+.ptbl tbody tr:hover { background:#F8FAFC }
+.stage { display:flex; align-items:center; gap:7px; font-weight:700; font-size:13.2px; color:#374151 }
+.dot { width:8px; height:8px; border-radius:50%; flex-shrink:0 }
+.d1{background:#CBD5E1}.d2{background:#38BDF8}.d3{background:#0068FF}.d4{background:#F59E0B}.d5{background:#A855F7}.d6{background:#22C55E}
+.acct { font-weight:700; color:var(--blue); font-size:14.4px }
+.status { font-size:13.2px; color:#475569; margin-top:2px }
+.next { font-size:13.2px; color:var(--green) }
+.empty { font-size:13.2px; color:#CBD5E1; font-style:italic }
+
+/* NOTE */
+.note { background:#F0F9FF; border-left:3px solid var(--blue); border-radius:0 8px 8px 0; padding:9px 13px; font-size:13.2px; color:#475569; margin-top:10px; line-height:1.5 }
+.note strong { color:var(--blue) }
+.note-warn { background:#FFFBEB; border-left-color:var(--orange) }
+.note-warn strong { color:var(--orange) }
+.note-green { background:#F0FDF4; border-left-color:var(--green) }
+.note-green strong { color:var(--green) }
+
+/* CS STATUS */
+.s-done { background:#DCFCE7; color:#15803D; font-size:10.8px; font-weight:700; padding:2px 8px; border-radius:5px; display:inline-block }
+.s-prog { background:#EFF6FF; color:var(--blue); font-size:10.8px; font-weight:700; padding:2px 8px; border-radius:5px; display:inline-block }
+.s-delay { background:#FEE2E2; color:var(--red); font-size:10.8px; font-weight:700; padding:2px 8px; border-radius:5px; display:inline-block }
+.s-ongoing { background:#FEF3C7; color:var(--orange); font-size:10.8px; font-weight:700; padding:2px 8px; border-radius:5px; display:inline-block }
+
+/* CRM UPDATE */
+.crm-group { margin-bottom:14px }
+.crm-head { font-size:13.2px; font-weight:700; padding:6px 10px; border-radius:6px; margin-bottom:6px }
+.crm-done { background:#DCFCE7; color:#15803D }
+.crm-open { background:#FEF3C7; color:#B45309 }
+.crm-discuss { background:#F3E8FF; color:#7C3AED }
+.crm-next { background:#EFF6FF; color:#1D4ED8 }
+.crm-item { display:flex; gap:8px; padding:6px 8px; border-radius:6px; background:#F8FAFC; margin-bottom:4px }
+.crm-dot { width:5px; height:5px; border-radius:50%; margin-top:5px; flex-shrink:0 }
+.cd-green{background:var(--green)}.cd-orange{background:var(--orange)}.cd-purple{background:#9333EA}.cd-blue{background:var(--blue)}
+.crm-text { font-size:13.2px; color:#374151; line-height:1.4 }
+.crm-sub { font-size:12.0px; color:var(--muted); margin-top:2px }
+
+/* CHART */
+.cw { position:relative; height:210px }
+.cw-sm { position:relative; height:170px }
+
+/* DIVIDER */
+.divider { height:1px; background:var(--border); margin:16px 0 }
+
+/* FOOTER */
+.footer { background:var(--navy); padding:14px 0; text-align:center; font-size:12.0px; color:rgba(255,255,255,0.45) }
+.footer strong { color:var(--cyan) }
+
+@media(max-width:900px){
+  .g2,.g3,.g5,.g2-1,.g1-2{grid-template-columns:1fr}
+  .bd-stats{flex-direction:column;gap:4px;margin-left:8px}
+  .report-title{font-size:19.2px}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="container">
+    <div class="header-inner">
+      <div class="logo">ZBS</div>
+      <div>
+        <div class="brand-name">Zalo Business Solutions</div>
+        <div class="brand-sub">BD & Customer Success Report</div>
+      </div>
+      <div class="header-title">
+        <div class="report-label">Weekly Report</div>
+        <div class="report-title">BD & CS Performance — W21</div>
+      </div>
+      <div class="header-right">
+        <span class="period-tag">W21 · T5/2026</span>
+        <div class="version-nav">
+          <label>Tuần trước:</label>
+          <select class="version-select" onchange="if(this.value)window.open(this.value)">
+            <option value="">— Chọn —</option>
+            <option value="#">W19 / T5/2026</option>
+            <option value="#">W18-19 / T4-5/2026</option>
+            <option value="#">W17 / T4/2026</option>
+          </select>
+        </div>
+        <div class="updated">Cập nhật: 27/05/2026</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="container">
+    <div class="topnav-inner">
+      <button class="tnav active" onclick="switchReport('ov',this)">📊 BD Overview</button>
+      <button class="tnav" onclick="switchReport('ind',this)">👥 BD Individual <span class="tnav-count">7</span></button>
+      <button class="tnav" onclick="switchReport('cs',this)">🎯 Customer Success & Support</button>
+    </div>
+  </div>
+</nav>
+
+<main class="main">
+<div class="container">
+
+<!-- ── BD OVERVIEW ── -->
+<div id="ov" class="rsec active">
+
+  <!-- KPI row -->
+  <div class="g5" style="margin-bottom:20px">
+    <div class="kpi">
+      <div class="kpi-label">Doanh thu MTD</div>
+      <div class="kpi-val blue">37.69<span style="font-size:14px">B</span></div>
+      <div class="kpi-sub">Biz Msg 34.85B · OA Sol 2.84B</div>
+      <div class="kpi-sub">1–24/05/2026</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">vs KPI Based (42.6B)</div>
+      <div class="kpi-val orange">81.8%</div>
+      <div class="kpi-sub">KPI cần đạt: 42.6 tỷ</div>
+      <span class="badge b-red">Chưa đạt KPI</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">vs Grade A (53.3B)</div>
+      <div class="kpi-val red">65.4%</div>
+      <div class="kpi-sub">KPI Grade A: 53.3 tỷ</div>
+      <span class="badge b-red">Chưa đạt Grade A</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Dự báo Full T5</div>
+      <div class="kpi-val green">~49<span style="font-size:14px">B</span></div>
+      <div class="kpi-sub">Biz Msg ~45.5B · OA ~3.6B</div>
+      <span class="badge b-green">~115% KPI Based</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">MoM Biz Messages</div>
+      <div class="kpi-val red">▼9.0%</div>
+      <div class="kpi-sub">vs Tháng 4/2026</div>
+      <div class="kpi-sub">OA Solutions ▼5.0%</div>
+    </div>
+  </div>
+
+  <div class="g2-1">
+    <!-- Reason tag + Top OA -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-title">Nguyên nhân tăng / giảm — T5 vs T4 (tỷ VND)</div>
+        <div class="cw"><canvas id="reasonChart"></canvas></div>
+        <div class="note note-warn" style="margin-top:10px">
+          <strong>Root cause:</strong> Promotion tag giảm <strong>-3.09B (-22.3%)</strong> = 89% tổng decline. Transaction ổn định (+0.03B). Customer Care giảm nhẹ -0.35B (-4.5%).
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top OA sụt giảm nhiều nhất</div>
+        <table class="tbl">
+          <thead><tr><th>OA</th><th>Ngành</th><th class="r">T5 (B)</th><th class="r">Δ%</th></tr></thead>
+          <tbody>
+            <tr><td class="tbl-bold">Shopee VN</td><td><span class="chip chip-gray">E-commerce</span></td><td class="r">2.17</td><td class="r"><span class="chip chip-red">-32%</span></td></tr>
+            <tr><td class="tbl-bold">Techcombank</td><td><span class="chip chip-gray">Ngân hàng</span></td><td class="r">1.69</td><td class="r"><span class="chip chip-red">-25%</span></td></tr>
+            <tr><td class="tbl-bold">Super Fast</td><td><span class="chip chip-gray">Vận chuyển</span></td><td class="r">0.21</td><td class="r"><span class="chip chip-red">-64%</span></td></tr>
+            <tr><td class="tbl-bold">Green SM</td><td><span class="chip chip-gray">Vận chuyển</span></td><td class="r">0.52</td><td class="r"><span class="chip chip-red">-39%</span></td></tr>
+            <tr><td class="tbl-bold">Bảo Việt NT</td><td><span class="chip chip-gray">Bảo hiểm</span></td><td class="r">0.12</td><td class="r"><span class="chip chip-red">-72%</span></td></tr>
+            <tr><td class="tbl-bold">MBBank</td><td><span class="chip chip-gray">Ngân hàng</span></td><td class="r">0.16</td><td class="r"><span class="chip chip-red">-58%</span></td></tr>
+            <tr><td class="tbl-bold">Vietnam Airlines</td><td><span class="chip chip-gray">Vận chuyển</span></td><td class="r">0.00</td><td class="r"><span class="chip chip-red">-98%</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Forecast + Key actions -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-title">Dự báo Full T5 vs KPI (tỷ VND)</div>
+        <div class="cw"><canvas id="forecastChart"></canvas></div>
+        <div style="margin-top:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #F1F5F9">
+            <span style="font-size:11px;color:#64748B">vs KPI Based (42.6B)</span>
+            <span class="badge b-green">~115% — ĐẠT KPI</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+            <span style="font-size:11px;color:#64748B">vs Grade A (53.3B)</span>
+            <span class="badge b-red">~92% — Chưa đạt</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Key Actions</div>
+        <div class="note" style="margin-top:0">
+          <strong>Action 1:</strong> AM liên hệ lại nhóm Promotion OA (Shopee, Green SM, MoMo) — push campaign T6 trước 6/6.
+        </div>
+        <div class="note note-warn" style="margin-top:6px">
+          <strong>Action 2:</strong> Theo dõi transaction tag. Cross-check với CS các OA có nguy cơ churn cao (Bảo Việt NT, Vietnam Airlines).
+        </div>
+        <div class="note note-green" style="margin-top:6px">
+          <strong>Focus T6:</strong> Cần thêm ~4.3B từ forecast ~49B để đạt Grade A (53.3B). Identify pipeline deals có khả năng close trong T6.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── BD INDIVIDUAL ── -->
+<div id="ind" class="rsec">
+
+  <div class="bd-tabs">
+    <button class="bd-tab active" onclick="switchBD('hp',this)">HuyenPTK <span class="kpi-chip chip chip-red">15.14B · -21.6%</span></button>
+    <button class="bd-tab" onclick="switchBD('ap',this)">AnhPNV <span class="kpi-chip chip chip-red">24.90B · -14.2%</span></button>
+    <button class="bd-tab" onclick="switchBD('ll',this)">LinhLD <span class="kpi-chip chip chip-red">7.23B · -18.9%</span></button>
+    <button class="bd-tab" onclick="switchBD('dk',this)">DuyenLTK <span class="kpi-chip chip chip-red">11.92B · -17.8%</span></button>
+    <button class="bd-tab" onclick="switchBD('hx',this)">HuongLX <span class="kpi-chip chip chip-blue">20M · +13.5%</span></button>
+    <button class="bd-tab" onclick="switchBD('ln',this)">LanLT2 <span class="kpi-chip chip chip-red">2.39B · -24.7%</span></button>
+    <button class="bd-tab" onclick="switchBD('vy',this)">VyNK5 <span class="kpi-chip chip chip-blue">Pipeline</span></button>
+  </div>
+
+  <!-- HUYENPTK -->
+  <div id="bd-hp" class="bd-panel active">
+    <div class="bd-header">
+      <div class="bd-avatar">HP</div>
+      <div><div class="bd-name">Huyền PTK</div><div class="bd-meta">May 1–24, 2026</div></div>
+      <div class="bd-stats">
+        <div class="bds"><span class="bds-val red">15.14B</span><span class="bds-label">Revenue T5</span></div>
+        <div class="bds"><span class="bds-val red">-21.6%</span><span class="bds-label">MoM vs T4</span></div>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">Revenue Breakdown</div>
+        <table class="tbl">
+          <thead><tr><th>Account</th><th class="r">T5 (B)</th><th class="r">MoM</th></tr></thead>
+          <tbody>
+            <tr><td colspan="3" style="font-size:10px;font-weight:600;color:#0068FF;padding:6px 10px 3px;border-bottom:none">AGENCY</td></tr>
+            <tr><td class="tbl-bold">Infobip Prepaid</td><td class="r">4.629</td><td class="r"><span class="chip chip-red">-18.3%</span></td></tr>
+            <tr><td class="tbl-bold">Shopee</td><td class="r">2.261</td><td class="r"><span class="chip chip-red">-31.2%</span></td></tr>
+            <tr><td class="tbl-bold">Techcombank</td><td class="r">1.691</td><td class="r"><span class="chip chip-red">-24.6%</span></td></tr>
+            <tr><td class="tbl-bold">SPX Express</td><td class="r">0.380</td><td class="r"><span class="chip chip-green">+130%</span></td></tr>
+            <tr><td class="tbl-bold">ShopeePay</td><td class="r">0.350</td><td class="r"><span class="chip chip-green">New</span></td></tr>
+            <tr style="background:#F8FAFC"><td><strong>Tổng</strong></td><td class="r"><strong>9.311</strong></td><td class="r"><span class="chip chip-red">-18.1%</span></td></tr>
+          </tbody>
+        </table>
+        <div class="note note-warn">
+          <strong>Driver:</strong> Promotion ↓ Shopee -0.948, TCB -0.603, Infobip -0.462 · CC ↓ Infobip -0.525
+        </div>
+      </div>
+                  <div class="card">
+        <div class="card-title">Hubspot Activities — May 2026</div>
+        <div class="stat-row" style="margin-bottom:10px">
+          <div class="stat"><span class="stat-val blue">74</span><span class="stat-label">Total Activities</span></div>
+          <div class="stat"><span class="stat-val">1</span><span class="stat-label">Calls</span></div>
+          <div class="stat"><span class="stat-val green">73</span><span class="stat-label">Emails</span></div>
+          <div class="stat"><span class="stat-val">0</span><span class="stat-label">Meetings</span></div>
+          <div class="stat"><span class="stat-val">0</span><span class="stat-label">Tasks</span></div>
+          <div class="stat"><span class="stat-val">0</span><span class="stat-label">Notes</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sales Pipeline — May 2026</div>
+      <table class="ptbl">
+        <thead><tr><th style="width:200px">Stage</th><th>Deals</th><th style="width:240px">Next Steps</th></tr></thead>
+        <tbody>
+          <tr><td><span class="stage"><span class="dot d1"></span>1. Prospecting</span></td><td><span class="empty">—</span></td><td><span class="empty">—</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d2"></span>2. Lead Qualification</span></td><td><span class="acct">Dexatel</span><div class="status">CPaaS Estonia → muốn trở thành đối tác ZBS, chưa có local entity</div></td><td><span class="empty">—</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d3"></span>3. Presentation</span></td><td><span class="empty">—</span></td><td><span class="empty">—</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d4"></span>4. Objection Handling</span></td><td><span class="acct">Techcombank</span><div class="status">Đã gửi lại HĐ cho TCB (15/5)</div></td><td><span class="next">Follow up TCB về HĐ</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d5"></span>5. ZCA Registration</span></td><td><span class="acct">Infobip</span><div class="status">Đã hoàn tất ký HĐ ZAP</div></td><td><span class="empty">—</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d6"></span>6. Closed Won</span></td><td>
+            <div style="margin-bottom:5px"><span class="acct">TechcomLife</span><div class="status">Đã ký HĐ & đang khai báo template</div></div>
+            <span class="acct">TCGI</span><div class="status">Đã ký HĐ & đang tích hợp hệ thống</div>
+          </td><td>
+            <span class="next">TechcomLife: golive đầu T6</span><br>
+            <span class="next">TCGI: tiếp tục onboard tích hợp</span>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ANHPNV -->
+  <div id="bd-ap" class="bd-panel">
+    <div class="bd-header">
+      <div class="bd-avatar" style="background:#2563EB">AP</div>
+      <div><div class="bd-name">Anh PNV</div><div class="bd-meta">May 2026</div></div>
+      <div class="bd-stats">
+        <div class="bds"><span class="bds-val red">24.90B</span><span class="bds-label">Revenue T5</span></div>
+        <div class="bds"><span class="bds-val red">-14.2%</span><span class="bds-label">MoM vs T4</span></div>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">Revenue Breakdown</div>
+        <table class="tbl">
+          <thead><tr><th>Agency / Account</th><th class="r">Revenue</th></tr></thead>
+          <tbody>
+            <tr><td colspan="2" style="font-size:10px;font-weight:600;color:#0068FF;padding:6px 10px 3px;border-bottom:none">AGENCY — 15.6B</td></tr>
+            <tr><td><span class="tbl-bold">Southtel</span><div class="tbl-sub">Long Châu 2B · VPBank 629M · Green SM 504M · CloudOTP 440M</div></td><td class="r tbl-bold">7.7B</td></tr>
+            <tr><td><span class="tbl-bold">FTI</span><div class="tbl-sub">FPT Telecom 909M · Tiktok 666M</div></td><td class="r tbl-bold">4.2B</td></tr>
+            <tr><td><span class="tbl-bold">eTelecom</span><div class="tbl-sub">Viettel Telecom 636M · Viettel Post 143M</div></td><td class="r">1.6B</td></tr>
+            <tr><td><span class="tbl-bold">Imedia</span><div class="tbl-sub">Cake by VPBank 818M · VNPost 109M</div></td><td class="r">1.1B</td></tr>
+            <tr><td colspan="2" style="font-size:10px;font-weight:600;color:#0068FF;padding:6px 10px 3px;border-bottom:none">DIRECT — 195M</td></tr>
+            <tr><td>Bản Việt Bank</td><td class="r">130M</td></tr>
+          </tbody>
+        </table>
+      </div>
+                  <div class="card">
+        <div class="card-title">Hubspot Activities — May 2026</div>
+        <div class="stat-row" style="margin-bottom:10px">
+          <div class="stat"><span class="stat-val blue">64</span><span class="stat-label">Total Activities</span></div>
+          <div class="stat"><span class="stat-val">1</span><span class="stat-label">Calls</span></div>
+          <div class="stat"><span class="stat-val green">55</span><span class="stat-label">Emails</span></div>
+          <div class="stat"><span class="stat-val">1</span><span class="stat-label">Meetings</span></div>
+          <div class="stat"><span class="stat-val">5</span><span class="stat-label">Tasks</span></div>
+          <div class="stat"><span class="stat-val">2</span><span class="stat-label">Notes</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sales Pipeline — W18–20</div>
+      <table class="ptbl">
+        <thead><tr><th style="width:200px">Stage</th><th>Deals</th><th style="width:240px">Next Steps</th></tr></thead>
+        <tbody>
+          <tr><td><span class="stage"><span class="dot d4"></span>4. Objection Handling</span></td><td><span class="empty">—</span></td><td><span class="acct">Sun PhuQuoc Airway</span><div class="next">Đề xuất thêm usecase</div></td></tr>
+          <tr><td><span class="stage"><span class="dot d5"></span>5. ZCA Registration</span></td><td>
+            <span class="acct">Green SM Merchant</span><div class="status">Set up OA & tích hợp ZBS</div>
+            <div style="margin-top:4px"><span class="acct">TPBank (FTI)</span><div class="status">Test tin BDSD</div></div>
+            <div style="margin-top:4px"><span class="acct">Vietcombank (FTI)</span><div class="status">Đang ký kết HĐ với FTI</div></div>
+          </td><td>
+            <span class="next">Green SM: đăng ký temp gửi merchant</span><br>
+            <span class="next">TPBank: trả lời vv lưu trữ dữ liệu</span>
+          </td></tr>
+          <tr><td><span class="stage"><span class="dot d6"></span>6. Closed Won</span></td><td>
+            <span class="acct">Viettel telecom</span><div class="status">Gửi consent nhận thông báo cước qua Zalo</div>
+            <div style="margin-top:4px"><span class="acct">KiotViet Finance</span><div class="status">Đã gửi usecase gói vay dành cho merchant</div></div>
+          </td><td><span class="empty">—</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LINHLD -->
+  <div id="bd-ll" class="bd-panel">
+    <div class="bd-header">
+      <div class="bd-avatar" style="background:#D97706">LL</div>
+      <div><div class="bd-name">Linh LD</div><div class="bd-meta">April 2026</div></div>
+      <div class="bd-stats">
+        <div class="bds"><span class="bds-val red">7.23B</span><span class="bds-label">Revenue T5</span></div>
+        <div class="bds"><span class="bds-val red">-18.9%</span><span class="bds-label">MoM vs T4</span></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Revenue Breakdown — April 2026</div>
+        <table class="tbl">
+          <thead><tr><th>Agency / Account</th><th class="r">Revenue</th></tr></thead>
+          <tbody>
+            <tr><td colspan="2" style="font-size:10px;font-weight:600;color:#0068FF;padding:6px 10px 3px;border-bottom:none">AGENCY — 1.7B</td></tr>
+            <tr><td><span class="tbl-bold">ViHAT</span><div class="tbl-sub">La Vie 100M · Mcredit 100M · Vua Nệm 84M · SCTV 79M</div></td><td class="r tbl-bold">1.4B</td></tr>
+            <tr><td><span class="tbl-bold">GMO</span><div class="tbl-sub">China Homelife 60M · Diag 58M · NETPOST 35M</div></td><td class="r">290M</td></tr>
+            <tr><td colspan="2" style="font-size:10px;font-weight:600;color:#0068FF;padding:6px 10px 3px;border-bottom:none">DIRECT — 1.8B</td></tr>
+            <tr><td>FECredit · VietCredit · Cathay Life · Zema VN</td><td class="r">1.8B</td></tr>
+          </tbody>
+        </table>
+      </div>
+                  <div class="card">
+        <div class="card-title">Hubspot Activities — May 2026</div>
+        <div class="stat-row" style="margin-bottom:10px">
+          <div class="stat"><span class="stat-val blue">44</span><span class="stat-label">Total Activities</span></div>
+          <div class="stat"><span class="stat-val">2</span><span class="stat-label">Calls</span></div>
+          <div class="stat"><span class="stat-val">20</span><span class="stat-label">Emails</span></div>
+          <div class="stat"><span class="stat-val">0</span><span class="stat-label">Meetings</span></div>
+          <div class="stat"><span class="stat-val">2</span><span class="stat-label">Tasks</span></div>
+          <div class="stat"><span class="stat-val">20</span><span class="stat-label">Notes</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:12px">Pipeline data cho LinhLD chưa được cập nhật trong báo cáo W20-21. BD cần fill vào Google Sheet tuần tới.</div>
+  </div>
+
+  <!-- DUYENLTK -->
+  <div id="bd-dk" class="bd-panel">
+    <div class="bd-header">
+      <div class="bd-avatar" style="background:#7C3AED">DK</div>
+      <div><div class="bd-name">Duyên LTK</div><div class="bd-meta">May 2026</div></div>
+      <div class="bd-stats">
+        <div class="bds"><span class="bds-val red">11.92B</span><span class="bds-label">Revenue T5</span></div>
+        <div class="bds"><span class="bds-val red">-17.8%</span><span class="bds-label">MoM vs T4</span></div>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">Revenue Breakdown</div>
+        <table class="tbl">
+          <thead><tr><th>Agency / Account</th><th class="r">Revenue</th><th class="r">MoM</th></tr></thead>
+          <tbody>
+            <tr><td colspan="3" style="font-size:10px;font-weight:600;color:#0068FF;padding:6px 10px 3px;border-bottom:none">AGENCY — 1.4B</td></tr>
+            <tr><td><span class="tbl-bold">Gapit</span><div class="tbl-sub">Vinamilk 158M · Winmart 116M · WinX 123M · Heineken 73M</div></td><td class="r">~1.0B</td><td class="r"><span class="chip chip-gray">T4: 1.2B</span></td></tr>
+            <tr><td><span class="tbl-bold">Tri Anh</span><div class="tbl-sub">Cấp Nước Đà Nẵng 155M · Cấp Nước Chợ Lớn 122M</div></td><td class="r">396M</td><td class="r"><span class="chip chip-red">T4: 408M</span></td></tr>
+            <tr><td colspan="3" style="font-size:10px;font-weight:600;color:#0068FF;padding:6px 10px 3px;border-bottom:none">DIRECT — 2.3B</td></tr>
+            <tr><td>PNJ</td><td class="r">332M</td><td class="r"><span class="chip chip-green">+9%</span></td></tr>
+            <tr><td>Yody</td><td class="r">249M</td><td class="r"><span class="chip chip-red">-34%</span></td></tr>
+            <tr><td>Pharmacity</td><td class="r">234M</td><td class="r"><span class="chip chip-red">-3%</span></td></tr>
+            <tr><td>Điện Máy Xanh</td><td class="r">117M</td><td class="r"><span class="chip chip-green">+135%</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+                  <div class="card">
+        <div class="card-title">Hubspot Activities — May 2026</div>
+        <div class="stat-row" style="margin-bottom:10px">
+          <div class="stat"><span class="stat-val blue">43</span><span class="stat-label">Total Activities</span></div>
+          <div class="stat"><span class="stat-val green">8</span><span class="stat-label">Calls</span></div>
+          <div class="stat"><span class="stat-val green">31</span><span class="stat-label">Emails</span></div>
+          <div class="stat"><span class="stat-val">2</span><span class="stat-label">Meetings</span></div>
+          <div class="stat"><span class="stat-val">0</span><span class="stat-label">Tasks</span></div>
+          <div class="stat"><span class="stat-val">2</span><span class="stat-label">Notes</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sales Pipeline — May 2026</div>
+      <table class="ptbl">
+        <thead><tr><th style="width:200px">Stage</th><th>Deals</th><th style="width:240px">Next Steps</th></tr></thead>
+        <tbody>
+          <tr><td><span class="stage"><span class="dot d2"></span>2. Lead Qualification</span></td><td><span class="acct">Chứng khoán Maybank</span><div class="status">SL 100K/tháng, luồng đăng nhập OTP, giao dịch và chiến dịch</div></td><td><span class="next">Meeting 26/05 với Team Commercial & IT</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d4"></span>4. Objection Handling</span></td><td>
+            <span class="acct">PNJ</span><div class="status">131 OA nâng cao 12 tháng</div>
+            <div style="margin-top:4px"><span class="acct">SunGroup</span><div class="status">Dự án mới triển khai app Loyalty, gửi Thông báo ZBS cho thành viên</div></div>
+          </td><td>
+            <span class="next">PNJ: push chốt 29/05/2026</span><br>
+            <span class="next">SunGroup: hỗ trợ thắc mắc API qua nhóm chat</span>
+          </td></tr>
+          <tr><td><span class="stage"><span class="dot d5"></span>5. ZCA Registration</span></td><td>
+            <span class="acct">Macro Kiosk</span><div class="status">2 bên thống nhất HĐ, nạp gói đầu tiên 250tr chiết khấu 20%</div>
+            <div style="margin-top:4px"><span class="acct">Con Cưng</span><div class="status">Dự kiến chạy campaign T6/2026, testing T052026</div></div>
+            <div style="margin-top:4px"><span class="acct">Gapit + Peacom + Watsons</span><div class="status">Đã ký xong HĐ 2 bên</div></div>
+          </td><td>
+            <span class="next">Macro Kiosk: xúc tiến ký HĐ 2 team</span><br>
+            <span class="next">Con Cưng: thương thảo hình thức thanh toán</span><br>
+            <span class="next">Gapit+Peacom: tạo ví mới & set up chuyển đổi ví</span>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- HUONGLX -->
+  <div id="bd-hx" class="bd-panel">
+    <div class="bd-header">
+      <div class="bd-avatar" style="background:#0891B2">HX</div>
+      <div><div class="bd-name">Hương LX</div><div class="bd-meta">May 2026 · W19-20-21 · SME Focus</div></div>
+      <div class="bd-stats">
+        <div class="bds"><span class="bds-val green">20M</span><span class="bds-label">Revenue T5</span></div>
+        <div class="bds"><span class="bds-val green">+13.5%</span><span class="bds-label">MoM vs T4</span></div>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">Revenue Notes</div>
+        <div class="note" style="margin-top:0"><strong>Direct:</strong> Transcosmos (Bảo Việt) 14M · Mobifone Data 5M · Đất Xanh Miền Bắc 5M</div>
+        <div class="note" style="margin-top:8px"><strong>MKT Lead:</strong> Chủ yếu SME, use case internal communication</div>
+        <div class="note note-warn" style="margin-top:8px"><strong>Deal status:</strong> Phần lớn đang ở Proposal Sent / Testing Pilot → validate solution, BD follow-up sát để đẩy sang closing</div>
+      </div>
+                  <div class="card">
+        <div class="card-title">Hubspot Activities — May 2026</div>
+        <div class="stat-row" style="margin-bottom:10px">
+          <div class="stat"><span class="stat-val blue">45</span><span class="stat-label">Total Activities</span></div>
+          <div class="stat"><span class="stat-val green">9</span><span class="stat-label">Calls</span></div>
+          <div class="stat"><span class="stat-val">16</span><span class="stat-label">Emails</span></div>
+          <div class="stat"><span class="stat-val">1</span><span class="stat-label">Meetings</span></div>
+          <div class="stat"><span class="stat-val">7</span><span class="stat-label">Tasks</span></div>
+          <div class="stat"><span class="stat-val">12</span><span class="stat-label">Notes</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sales Pipeline — May 2026</div>
+      <table class="ptbl">
+        <thead><tr><th style="width:180px">Stage</th><th>Account</th><th>Status</th><th style="width:220px">Next Action</th></tr></thead>
+        <tbody>
+          <tr><td><span class="stage"><span class="dot d3"></span>3. Presentation</span></td><td><span class="acct">Ricoh · Rita Võ</span></td><td><span class="status">Thông báo bảo trì, CSKH, Promotion cho Group</span></td><td><span class="next">Meeting đầu T6</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d4"></span>4. Objection Handling</span></td><td><span class="acct">CleverAds · Bookie</span></td><td><span class="status">Mở rộng giải pháp OA, ZBS Message Template · Trao đổi về use case Booking</span></td><td><span class="next">Demo use case OA + ZBS Message Template phù hợp từng vertical</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d5"></span>5. ZCA Registration</span></td><td><span class="acct">TableCheck x 4Ps · Alliex (FnB, Spa)</span></td><td><span class="status">Phase 1 chạy qua vendor BOLD (tag 2) · Đang phát triển CRM platform, tích hợp ZBS API</span></td><td><span class="next">Chuẩn bị golive T5 · Tư vấn mô hình manage nhiều OA</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LANLT2 -->
+  <div id="bd-ln" class="bd-panel">
+    <div class="bd-header">
+      <div class="bd-avatar" style="background:#16A34A">LN</div>
+      <div><div class="bd-name">Lan LT2</div><div class="bd-meta">May 2026 · 8-week trend</div></div>
+      <div class="bd-stats">
+        <div class="bds"><span class="bds-val red">2.39B</span><span class="bds-label">Revenue T5</span></div>
+        <div class="bds"><span class="bds-val red">-24.7%</span><span class="bds-label">MoM vs T4</span></div>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">Revenue Breakdown — May 2026</div>
+        <table class="tbl">
+          <thead><tr><th>Agency / Account</th><th class="r">Revenue</th><th class="r">MoM</th></tr></thead>
+          <tbody>
+            <tr><td colspan="3" style="font-size:10px;font-weight:600;color:#0068FF;padding:6px 10px 3px;border-bottom:none">AGENCY — 1.85B</td></tr>
+            <tr><td><span class="tbl-bold">NXAI</span><div class="tbl-sub">JNT Express 791M · Super Fast 209M · Imou 153M</div></td><td class="r tbl-bold">1.29B</td><td class="r"></td></tr>
+            <tr><td><span class="tbl-bold">Phúc Long</span></td><td class="r green">233M</td><td class="r"><span class="chip chip-green">+90M</span></td></tr>
+            <tr><td><span class="tbl-bold">VNGGames</span></td><td class="r green">90M</td><td class="r"><span class="chip chip-green">+66M</span></td></tr>
+            <tr><td colspan="3" style="font-size:10px;font-weight:600;color:#0068FF;padding:6px 10px 3px;border-bottom:none">DIRECT — 169M</td></tr>
+            <tr><td>TCBS 73M · ZLP 38M · KIDO Thọ Phát 22M</td><td class="r">169M</td><td class="r"><span class="chip chip-red">-18%</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+            <div class="card">
+        <div class="card-title">Hubspot Activities — May 2026</div>
+        <div class="stat-row" style="margin-bottom:10px">
+          <div class="stat"><span class="stat-val blue">79</span><span class="stat-label">Total Activities</span></div>
+          <div class="stat"><span class="stat-val green">10</span><span class="stat-label">Calls</span></div>
+          <div class="stat"><span class="stat-val green">37</span><span class="stat-label">Emails</span></div>
+          <div class="stat"><span class="stat-val green">4</span><span class="stat-label">Meetings</span></div>
+          <div class="stat"><span class="stat-val">3</span><span class="stat-label">Tasks</span></div>
+          <div class="stat"><span class="stat-val">25</span><span class="stat-label">Notes</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sales Pipeline — May 2026</div>
+      <table class="ptbl">
+        <thead><tr><th style="width:180px">Stage</th><th>Account</th><th>May-26 Status</th><th style="width:220px">Next Action</th></tr></thead>
+        <tbody>
+          <tr><td><span class="stage"><span class="dot d2"></span>Lead Qualification</span></td><td><span class="acct">Hihub · V-App by VSF</span></td><td><span class="status">Usecase Khảo sát cho Dvu HCC · Tư vấn use case tải app ~500K users</span></td><td><span class="next">Giới thiệu đại lý OneSMS · Follow up timeline triển khai</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d3"></span>Presentation</span></td><td><span class="acct">LG Vina Cosmetics</span></td><td><span class="status">Setup meeting với General Director từ Korea (mid-June)</span></td><td><span class="next">Chuẩn bị proposal & finalize use case</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d4"></span>Objection Handling</span></td><td><span class="acct">AdFlex · DHL · Masan x Prisms · Kido-Thọ Phát</span></td><td><span class="status">Gửi HĐ đại lý mới · Testing ZCC trên IP Phone · ZBS đang trình ký HĐ · Đã gửi HĐ cho KH review</span></td><td><span class="next">Theo dõi tiến độ review · Hỗ trợ tích hợp · Follow up ký kết</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d6"></span>Closed Won</span></td><td><span class="acct">VPMedia · E-Gets x NXAI</span></td><td><span class="status">Hỗ trợ đối tác làm hồ sơ thầu · Hoàn tất tích hợp, dự kiến go-live 30/5</span></td><td><span class="next">Follow up onboard KH mới · Support go-live & monitor</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- VYNK5 -->
+  <div id="bd-vy" class="bd-panel">
+    <div class="bd-header">
+      <div class="bd-avatar" style="background:#475569">VY</div>
+      <div><div class="bd-name">Vy NK5</div><div class="bd-meta">May 2026 · Pipeline Update</div></div>
+    </div>
+    <div class="g2" style="margin-bottom:14px">
+      <div class="note note-warn" style="margin-top:0">Revenue: OA chưa có managedBy=vynk5 trong Qlik — sẽ auto-pull khi setup hoàn tất.</div>
+      <div class="card">
+        <div class="card-title">Hubspot Activities — May 2026</div>
+        <div class="stat-row" style="margin-bottom:10px">
+          <div class="stat"><span class="stat-val blue">20</span><span class="stat-label">Total Activities</span></div>
+          <div class="stat"><span class="stat-val">0</span><span class="stat-label">Calls</span></div>
+          <div class="stat"><span class="stat-val">12</span><span class="stat-label">Emails</span></div>
+          <div class="stat"><span class="stat-val">2</span><span class="stat-label">Meetings</span></div>
+          <div class="stat"><span class="stat-val">0</span><span class="stat-label">Tasks</span></div>
+          <div class="stat"><span class="stat-val">6</span><span class="stat-label">Notes</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sales Pipeline — May 2026</div>
+      <table class="ptbl">
+        <thead><tr><th style="width:180px">Stage</th><th>Account</th><th>May-26 Status</th><th style="width:240px">Next Action (May + Jun)</th></tr></thead>
+        <tbody>
+          <tr><td><span class="stage"><span class="dot d3"></span>3. Presentation</span></td><td><span class="acct">Heineken VN · Guardian VN</span></td><td><span class="status">Tư vấn usecase GMF và ZCC cho Telesales · Tư vấn usecase OA chuỗi + GMF</span></td><td><span class="next">Thu thập yêu cầu, meeting T1-T6 · 28/05 meeting Marketing Guardian</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d4"></span>4. Objection Handling</span></td><td><span class="acct">Pancake VN · Long Châu FRT · PNJ</span></td><td><span class="status">Tích hợp toàn bộ API end-user · Phase 1 tích hợp broadcast · Gia hạn 131 gói OA chuỗi PnJ, đã báo giá</span></td><td><span class="next">Follow up Pancake timeline (T4-T6) · Deadline Long Châu 15/06 · Follow up BD Ms.Duyên</span></td></tr>
+          <tr><td><span class="stage"><span class="dot d5"></span>5. Progressing</span></td><td><span class="acct">Bách Hóa Xanh</span></td><td><span class="status">Tạo và mua gói cho 2.812 OAs của BHX, HĐ chờ BHX ký và gửi lại</span></td><td><span class="next">Gửi DNTT → tạo ví → gán gói · Dự kiến 30/5/2026</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── CS REPORT ── -->
+<div id="cs" class="rsec">
+
+  <div class="g2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">Ticket Template Tag3 — Weekly (W18–21)</div>
+      <div class="cw"><canvas id="ticketTempChart"></canvas></div>
+      <div class="note note-warn" style="margin-top:10px">Tổng số ticket tag 3 giảm nhẹ, nhưng workload/agent tăng do giảm 1 CTV (Phát). Workload Hân x2 do 100% xử lý temp nhóm self-serve.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Ticket FD — Trendline 10 tuần gần nhất</div>
+      <div class="cw"><canvas id="ticketFdChart"></canvas></div>
+      <div class="note note-warn" style="margin-top:10px">Ticket FD tuần 21 so với tuần 20 đi ngang, giảm hơn so với các tuần &lt;15. Top 2 vấn đề nổi bật: <strong>"mẫu tin"</strong> và <strong>"hóa đơn thanh toán"</strong>.</div>
+    </div>
+  </div>
+
+  <!-- CS Activity Table -->
+  <div class="section">
+    <div class="section-title">Customer Success — Activity Update</div>
+    <div class="card">
+      <table class="tbl">
+        <thead><tr>
+          <th style="width:120px">Category</th>
+          <th style="width:180px">Main Task</th>
+          <th>Descriptions</th>
+          <th style="width:90px">Status</th>
+        </tr></thead>
+        <tbody>
+          <tr><td rowspan="2" class="tbl-bold" style="color:#0068FF;vertical-align:top;padding-top:10px">Policy & Terms</td>
+            <td>Temp Rating Biểu tượng cảm xúc</td>
+            <td style="font-size:11px;color:#475569">Update nội dung liên quan đến dạng template Rating (biểu tượng cảm xúc)</td>
+            <td><span class="s-prog">In Progress</span></td></tr>
+          <tr><td>Đơn giản hóa quy tắc kiểm duyệt</td>
+            <td style="font-size:11px;color:#475569">Điều chỉnh guidelines, phân biệt CTA Internal App/Web, khảo sát nhu cầu → Tag 2, tặng voucher sau giao dịch → Tag 2</td>
+            <td><span class="s-prog">In Progress</span></td></tr>
+          <tr><td rowspan="3" class="tbl-bold" style="color:#0068FF;vertical-align:top;padding-top:10px">Key Account / Self-serve</td>
+            <td>Giấy chứng nhận đại lý</td>
+            <td style="font-size:11px;color:#475569">Cấp chứng nhận cho tất cả đại lý có doanh thu và đã hoàn tất bộ HĐ với ZAP. Đã hoàn tất 9 GCN (Pending PEACOM, INFOBIP)</td>
+            <td><span class="s-prog">In Progress</span></td></tr>
+          <tr><td>Chuyển đổi voucher code cho KA từ 1/6</td>
+            <td style="font-size:11px;color:#475569">Voucher chưa dùng đến 01/06/2026 sẽ tự động chuyển: Nâng cao 12T → Tăng trưởng 6T; Premium 12T → Toàn diện 12T. <strong style="color:#16A34A">Đã thông báo cho KH.</strong></td>
+            <td><span class="s-done">Done</span></td></tr>
+          <tr><td>Optimize quy trình Onboarding mới</td>
+            <td style="font-size:11px;color:#475569">Review quy trình Onboarding với product nhằm hỗ trợ KH mới tiếp cận sản phẩm dễ dàng hơn (thư viện mẫu, tài sản template)</td>
+            <td><span class="s-delay">Delayed</span></td></tr>
+          <tr><td rowspan="2" class="tbl-bold" style="color:#0068FF;vertical-align:top;padding-top:10px">Operation</td>
+            <td>Áp dụng cơ chế tính lương mới cho CTV</td>
+            <td style="font-size:11px;color:#475569">Áp dụng từ 01/06/2026, đã xong V2. Cấp quyền kiểm duyệt Temp cho tất cả CTV CS → Đẩy nhanh tốc độ kiểm duyệt → done</td>
+            <td><span class="s-ongoing">Ongoing</span></td></tr>
+          <tr><td>CS Leader</td>
+            <td style="font-size:11px;color:#475569">Pick CS Leader hỗ trợ training & theo sát CTV. Cho Nha và Thuận testing việc training cho CTV mới.</td>
+            <td><span class="s-prog">In Progress</span></td></tr>
+          <tr><td rowspan="2" class="tbl-bold" style="color:#0068FF;vertical-align:top;padding-top:10px">Product Update</td>
+            <td>Luồng gửi tin BĐSD</td>
+            <td style="font-size:11px;color:#475569">Gửi tin thông báo ghi nhận nạp tiền & hoá đơn cho KH sau khi nạp thành công. Phase 1: Launch 26/05/2026. Phase 2: Admin ZBS account thay đổi thông tin hoá đơn.</td>
+            <td><span class="s-prog">In Progress</span></td></tr>
+          <tr><td>Quy trình thu thập SĐT để gửi tin</td>
+            <td style="font-size:11px;color:#475569">Làm việc với prod & Zsafety về thu thập SĐT admin ZBS → Pending Compliance review Terms, các phần khác đã sẵn sàng.</td>
+            <td><span class="s-prog">In Progress</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Hubspot CRM Update -->
+  <div class="section">
+    <div class="section-title">Hubspot CRM — Update & Action Items</div>
+    <div class="g2">
+      <div class="card">
+        <div class="crm-group">
+          <div class="crm-head crm-done">✅ Done</div>
+          <div class="crm-item"><div class="crm-dot cd-green"></div><div><div class="crm-text">Xóa contact nguồn từ FD không có Company Associate + Owner</div><div class="crm-sub">Đã clean up các junk data</div></div></div>
+          <div class="crm-item"><div class="crm-dot cd-green"></div><div><div class="crm-text">Bổ sung quy định log Contact, Task, cơ chế Review Audit data → cập nhật ZBS Hubspot SOP</div><div class="crm-sub">Contact Management · Task Management · Review & Reminder</div></div></div>
+          <div class="crm-item"><div class="crm-dot cd-green"></div><div><div class="crm-text">Thiết lập channel thông báo về CRM [Always ON] Vận hành trên CRM Hubspot</div><div class="crm-sub">Internal Channel để thông báo Quy trình mới, Q&A, Feedback của team</div></div></div>
+        </div>
+        <div class="crm-group">
+          <div class="crm-head crm-open">🟡 Open</div>
+          <div class="crm-item"><div class="crm-dot cd-orange"></div><div><div class="crm-text">Redesign flow qualify contact + lead self-serve trên CRM</div><div class="crm-sub">Owner: Vynk5 + Kiennt9 · Deadline: 03/06/2026</div></div></div>
+          <div class="crm-item"><div class="crm-dot cd-orange"></div><div><div class="crm-text">Fillup data contact cũ (đến ngày 18/5/26) do BD/AM Owner</div><div class="crm-sub">BD/AM: Deadline 25/05 · Admin CRM upload: Deadline 27/05</div></div></div>
+          <div class="crm-item"><div class="crm-dot cd-orange"></div><div><div class="crm-text">Log các Chính sách hỗ trợ (rebate hỗ trợ giữ giá) lên CRM</div><div class="crm-sub">Owner: Ngandk3 · Deadline: 26/05/2026</div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="crm-group">
+          <div class="crm-head crm-discuss">💬 To Be Discussed</div>
+          <div class="crm-item"><div class="crm-dot cd-purple"></div><div><div class="crm-text">Contact MKT unqualified còn cần lưu trữ trên CRM không do nhiều contact spam, submit sai</div><div class="crm-sub">Owner: Vynk5 + Kiennt9</div></div></div>
+          <div class="crm-item"><div class="crm-dot cd-purple"></div><div><div class="crm-text">Flow phân chia lead từ FD cho BD/AM</div><div class="crm-sub">Loop in Huyenptk check có cần chia lead cho team AM không</div></div></div>
+        </div>
+        <div class="crm-group">
+          <div class="crm-head crm-next">▶️ Next Actions</div>
+          <div class="crm-item"><div class="crm-dot cd-blue"></div><div class="crm-text">Follow-up với BD fill các data Contact cũ tại sheet</div></div>
+          <div class="crm-item"><div class="crm-dot cd-blue"></div><div class="crm-text">Redesign Flow qualify contact Self-serve</div></div>
+          <div class="crm-item"><div class="crm-dot cd-blue"></div><div class="crm-text">Redesign Flow chăm sóc, chuyển đổi lead</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- /container -->
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <strong>ZBS BD & CS Report</strong> · Auto-generated by Claude Code · W21 / T5/2026 · Sources: Qlik Sense ZNS Performance, HubSpot CRM · Updated: 27/05/2026
+  </div>
+</footer>
+
+<script>
+Chart.register(ChartDataLabels);
+
+function switchReport(id, el) {
+  document.querySelectorAll('.rsec').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tnav').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+function switchBD(id, el) {
+  document.querySelectorAll('.bd-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.bd-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('bd-' + id).classList.add('active');
+  el.classList.add('active');
+}
+
+const font = { family: "'SVN-Gilroy','Gilroy','Nunito',sans-serif", size: 11 };
+const grid = '#E9EFF6';
+
+// Reason Tag
+new Chart(document.getElementById('reasonChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Customer Care', 'Transaction', 'Promotion'],
+    datasets: [
+      { label: 'T5/2026', data: [8, 16, 11], backgroundColor: '#0068FF', borderRadius: 4 },
+      { label: 'T4/2026', data: [8, 16, 14], backgroundColor: '#BFDBFE', borderRadius: 4 }
+    ]
+  },
+  options: {
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#64748B', font, boxWidth: 10 } },
+      datalabels: { color: '#1E293B', font: { ...font, weight: 600 }, anchor: 'end', align: 'end' }
+    },
+    scales: {
+      x: { grid: { color: grid }, ticks: { color: '#94A3B8', font }, border: { display: false } },
+      y: { grid: { display: false }, ticks: { color: '#475569', font } }
+    }
+  }
+});
+
+// Forecast
+new Chart(document.getElementById('forecastChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Thực tế\n1–24/5', 'Dự báo\nfull T5', 'KPI\nBased', 'Grade A'],
+    datasets: [{
+      data: [38, 49, 43, 53],
+      backgroundColor: ['#0068FF', '#0EA5E9', '#D97706', '#DC2626'],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      datalabels: { color: '#fff', font: { ...font, weight: 700, size: 12 }, anchor: 'center', align: 'center', formatter: v => v + 'B' }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#64748B', font, maxRotation: 0 } },
+      y: { grid: { color: grid }, ticks: { color: '#94A3B8', font, callback: v => v + 'B' }, min: 0, max: 62 }
+    }
+  }
+});
+
+// Lanlt2 Trend
+new Chart(document.getElementById('lanTrendChart'), {
+  type: 'bar',
+  data: {
+    labels: ['W14','W15','W16','W17','W18','W19','W20','W21'],
+    datasets: [
+      { label: 'Agency', data: [638,696,620,597,518,464,567,587], backgroundColor: '#0068FF', borderRadius: 3, stack: 'a' },
+      { label: 'Direct', data: [61,50,50,42,27,58,59,44], backgroundColor: '#BFDBFE', borderRadius: 3, stack: 'a' }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#64748B', font, boxWidth: 8, padding: 8 } },
+      datalabels: { display: false }
+    },
+    scales: {
+      x: { stacked: true, grid: { display: false }, ticks: { color: '#94A3B8', font } },
+      y: { stacked: true, grid: { color: grid }, ticks: { color: '#94A3B8', font, callback: v => v + 'M' } }
+    }
+  }
+});
+
+// Ticket Template
+new Chart(document.getElementById('ticketTempChart'), {
+  type: 'bar',
+  data: {
+    labels: ['W18','W19','W20','W21'],
+    datasets: [
+      { label: 'hannnb2',  data: [200,320,400,380], backgroundColor: '#FCD34D', stack: 'a', borderRadius: 2 },
+      { label: 'nhahtc',   data: [100,180,250,220], backgroundColor: '#38BDF8', stack: 'a', borderRadius: 2 },
+      { label: 'phatnh7',  data: [220,350,450,350], backgroundColor: '#0068FF', stack: 'a', borderRadius: 2 },
+      { label: 'thuannt3', data: [180,300,380,280], backgroundColor: '#A78BFA', stack: 'a', borderRadius: 2 },
+      { label: 'trangtt13',data: [101,254,240,251], backgroundColor: '#F472B6', stack: 'a', borderRadius: 2 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#64748B', font, boxWidth: 8, padding: 8 } },
+      datalabels: {
+        display: (ctx) => ctx.datasetIndex === 4,
+        color: '#1E293B', font: { ...font, weight: 700 }, anchor: 'end', align: 'top',
+        formatter: (v, ctx) => ctx.chart.data.datasets.reduce((a,d) => a + (d.data[ctx.dataIndex]||0), 0)
+      }
+    },
+    scales: {
+      x: { stacked: true, grid: { display: false }, ticks: { color: '#94A3B8', font } },
+      y: { stacked: true, grid: { color: grid }, ticks: { color: '#94A3B8', font } }
+    }
+  }
+});
+
+// Ticket FD
+new Chart(document.getElementById('ticketFdChart'), {
+  type: 'line',
+  data: {
+    labels: ['T12','T13','T14','T15','T16','T17','T18','T19','T20','T21'],
+    datasets: [{
+      label: 'Total FD Tickets',
+      data: [180,180,190,183,159,183,64,155,171,171],
+      borderColor: '#0068FF', backgroundColor: 'rgba(0,104,255,0.07)',
+      fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#0068FF', borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      datalabels: { color: '#1E293B', font: { ...font, weight: 600 }, anchor: 'end', align: 'top' }
+    },
+    scales: {
+      x: { grid: { color: grid }, ticks: { color: '#94A3B8', font } },
+      y: { grid: { color: grid }, ticks: { color: '#94A3B8', font }, min: 0, max: 220 }
+    }
+  }
+});
+</script>
+</body>

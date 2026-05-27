@@ -16,25 +16,21 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '20'
+          python-version: '3.11'
 
-      - name: Encrypt index.html with staticrypt
+      - name: Wrap report in password gate
         env:
           REPORT_PASSWORD: ${{ secrets.REPORT_PASSWORD }}
-          STATICRYPT_SALT:  ${{ secrets.STATICRYPT_SALT }}
         run: |
-          echo "🔐 Encrypting index.html..."
-          npx staticrypt@3 index.html \
-            --password  "$REPORT_PASSWORD" \
-            --salt      "$STATICRYPT_SALT" \
-            --remember  7 \
-            --short \
-            --directory ./encrypted/
-          cp ./encrypted/index.html ./index.html
-          echo "✅ Encrypted!"
+          echo "🔐 Wrapping index_raw.html with password gate..."
+          python make_gate.py \
+            --html         index_raw.html \
+            --password-env REPORT_PASSWORD \
+            --out          index.html
+          echo "✅ Gate HTML generated!"
 
       - name: Commit and push
         run: |
@@ -42,10 +38,10 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
           if git diff --staged --quiet; then
-            echo "ℹ️ Already encrypted, no changes."
+            echo "ℹ️ No changes to commit."
           else
             TIMESTAMP=$(TZ='Asia/Ho_Chi_Minh' date +'%d/%m/%Y %H:%M')
-            git commit -m "🔐 Encrypt report — $TIMESTAMP ICT"
+            git commit -m "🔐 Rebuild password gate — $TIMESTAMP ICT"
             git push
-            echo "✅ Pushed encrypted report!"
+            echo "✅ Pushed!"
           fi

@@ -21,7 +21,7 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # để commit + push index.html
+      contents: write
 
     steps:
       - name: Checkout repo
@@ -56,45 +56,34 @@ jobs:
             --qlik  bd_qlik_revenue.json \
             --out   bd_data_latest.json
 
-      - name: Inject data into HTML
+      - name: Inject data into index_raw.html
         run: |
-          echo "💉 Injecting data into index.html..."
+          echo "💉 Injecting data into index_raw.html..."
           python inject_bd_data.py \
             --data bd_data_latest.json \
-            --html index.html \
-            --out  index.html
+            --html index_raw.html \
+            --out  index_raw.html
 
-      - name: Setup Node.js (for staticrypt)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Encrypt HTML with staticrypt
+      - name: Wrap with password gate
         env:
           REPORT_PASSWORD: ${{ secrets.REPORT_PASSWORD }}
-          STATICRYPT_SALT:  ${{ secrets.STATICRYPT_SALT }}
         run: |
-          echo "🔐 Encrypting index.html with staticrypt..."
-          # Encrypt to temp dir, then replace original
-          npx staticrypt@3 index.html \
-            --password  "$REPORT_PASSWORD" \
-            --salt      "$STATICRYPT_SALT" \
-            --remember  7 \
-            --short \
-            --directory ./encrypted/
-          cp ./encrypted/index.html ./index.html
-          echo "✅ Encrypted!"
+          echo "🔐 Wrapping with password gate..."
+          python make_gate.py \
+            --html         index_raw.html \
+            --password-env REPORT_PASSWORD \
+            --out          index.html
 
       - name: Commit and push
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html bd_data_latest.json
+          git add index.html index_raw.html bd_data_latest.json
           if git diff --staged --quiet; then
             echo "ℹ️ No changes to commit."
           else
             TIMESTAMP=$(TZ='Asia/Ho_Chi_Minh' date +'%d/%m/%Y %H:%M')
-            git commit -m "🔄 Auto-refresh + encrypt — $TIMESTAMP ICT"
+            git commit -m "🔄 Auto-refresh — $TIMESTAMP ICT"
             git push
-            echo "✅ Pushed encrypted report!"
+            echo "✅ Pushed!"
           fi
