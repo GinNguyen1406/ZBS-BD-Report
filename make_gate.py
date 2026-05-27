@@ -27,221 +27,255 @@ def sha256_hex(s: str) -> str:
 
 
 # ── Gate HTML template ────────────────────────────────────────────────────────
-# Uses iframe srcdoc to render the report — avoids document.write() timing bugs.
-# Gate is a position:fixed overlay; report loads inside a fullscreen iframe.
+# On correct password: decode base64 → Blob URL → window.location.href navigate.
+# This avoids document.write() and iframe sandbox issues entirely.
 GATE_TEMPLATE = """<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZBS BD & CS Report — Đăng nhập</title>
+<title>ZBS Report — Đăng nhập</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
 *{{margin:0;padding:0;box-sizing:border-box}}
-html,body{{height:100%;overflow:hidden;background:#021C48}}
-
-/* ── Gate overlay ── */
-#gate{{
-  position:fixed;inset:0;z-index:9999;
-  background:#021C48;
-  font-family:'Nunito',-apple-system,sans-serif;
+html,body{{
+  height:100%;
+  font-family:-apple-system,'Segoe UI',sans-serif;
+  background:#010f2e;
+}}
+body{{
   display:flex;align-items:center;justify-content:center;
-  overflow-y:auto;
+  min-height:100vh;position:relative;overflow:hidden;
 }}
-#gate::before{{
-  content:'';position:fixed;right:-80px;top:-80px;
-  width:400px;height:400px;border-radius:50%;
-  background:rgba(0,104,255,0.15);pointer-events:none;z-index:0;
+
+/* decorative blobs */
+body::before{{
+  content:'';position:fixed;right:-120px;top:-120px;
+  width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,104,255,.22) 0%,transparent 70%);
+  pointer-events:none;
 }}
-#gate::after{{
-  content:'';position:fixed;left:-60px;bottom:-60px;
-  width:280px;height:280px;border-radius:50%;
-  background:rgba(55,222,231,0.1);pointer-events:none;z-index:0;
+body::after{{
+  content:'';position:fixed;left:-80px;bottom:-80px;
+  width:360px;height:360px;border-radius:50%;
+  background:radial-gradient(circle,rgba(55,222,231,.14) 0%,transparent 70%);
+  pointer-events:none;
 }}
+
+/* card */
 .card{{
-  background:rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.1);
-  border-radius:20px;padding:48px 44px;
-  width:100%;max-width:420px;margin:auto;
+  width:100%;max-width:400px;margin:24px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:24px;padding:44px 40px;
   position:relative;z-index:1;
-  backdrop-filter:blur(12px);
-  box-shadow:0 24px 64px rgba(0,0,0,0.4);
+  box-shadow:0 32px 80px rgba(0,0,0,.5);
+  backdrop-filter:blur(20px);
 }}
-.logo-row{{display:flex;align-items:center;gap:14px;margin-bottom:32px}}
-.logo{{
-  width:48px;height:48px;background:#0068FF;border-radius:12px;
-  display:flex;align-items:center;justify-content:center;
-  font-weight:800;font-size:18px;color:#fff;
-  box-shadow:0 0 0 3px rgba(55,222,231,0.3);flex-shrink:0;
-}}
-.brand-name{{font-size:16px;font-weight:700;color:#fff}}
-.brand-sub{{font-size:12px;color:rgba(255,255,255,0.45)}}
-h1{{font-size:22px;font-weight:800;color:#fff;margin-bottom:6px}}
-.desc{{font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:28px;line-height:1.5}}
-.week-tag{{
-  display:inline-block;background:rgba(55,222,231,0.15);color:#37DEE7;
-  border:1px solid rgba(55,222,231,0.3);font-size:11px;font-weight:700;
-  padding:3px 10px;border-radius:12px;margin-bottom:20px;letter-spacing:.5px;
-}}
-label{{
-  display:block;font-size:12px;font-weight:700;
-  color:rgba(255,255,255,0.5);text-transform:uppercase;
-  letter-spacing:.8px;margin-bottom:8px;
-}}
-.input-wrap{{position:relative;margin-bottom:8px}}
-input[type=password],input[type=text]{{
-  width:100%;padding:12px 44px 12px 16px;
-  background:rgba(255,255,255,0.07);
-  border:1.5px solid rgba(255,255,255,0.12);
-  border-radius:10px;color:#fff;font-size:15px;
-  font-family:inherit;outline:none;transition:border-color .2s;
-}}
-input[type=password]:focus,input[type=text]:focus{{border-color:rgba(55,222,231,0.6)}}
-input::placeholder{{color:rgba(255,255,255,0.25)}}
-.toggle-pw{{
-  position:absolute;right:12px;top:50%;transform:translateY(-50%);
-  background:none;border:none;cursor:pointer;
-  color:rgba(255,255,255,0.35);padding:4px;
-}}
-.toggle-pw:hover{{color:rgba(255,255,255,0.7)}}
-.remember-row{{display:flex;align-items:center;gap:8px;margin:10px 0 22px}}
-.remember-row input[type=checkbox]{{width:16px;height:16px;accent-color:#37DEE7;cursor:pointer}}
-.remember-row span{{font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer}}
-.btn{{
-  width:100%;padding:13px;
-  background:linear-gradient(135deg,#0068FF,#0050CC);
-  border:none;border-radius:10px;color:#fff;
-  font-size:15px;font-weight:700;font-family:inherit;
-  cursor:pointer;transition:all .2s;
-  box-shadow:0 4px 16px rgba(0,104,255,0.4);
-}}
-.btn:hover{{background:linear-gradient(135deg,#1a78ff,#0060dd);transform:translateY(-1px)}}
-.btn:active{{transform:translateY(0)}}
-.btn:disabled{{opacity:0.6;cursor:not-allowed;transform:none}}
-.error{{
-  background:rgba(220,38,38,0.15);border:1px solid rgba(220,38,38,0.3);
-  color:#FCA5A5;font-size:13px;padding:10px 14px;border-radius:8px;
-  margin-top:12px;display:none;
-}}
-.spinner{{
-  display:inline-block;width:16px;height:16px;
-  border:2.5px solid rgba(255,255,255,0.3);border-top-color:#fff;
-  border-radius:50%;animation:spin .7s linear infinite;
-  margin-right:6px;vertical-align:middle;
-}}
-@keyframes spin{{to{{transform:rotate(360deg)}}}}
 
-/* ── Report iframe ── */
-#report-frame{{
-  display:none;position:fixed;inset:0;
-  width:100%;height:100%;border:none;
+/* logo */
+.logo-row{{display:flex;align-items:center;gap:12px;margin-bottom:28px}}
+.logo-box{{
+  width:44px;height:44px;border-radius:12px;
+  background:linear-gradient(135deg,#0068FF,#0050cc);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:15px;color:#fff;letter-spacing:-.5px;
+  box-shadow:0 0 0 2.5px rgba(55,222,231,.4),0 4px 12px rgba(0,104,255,.4);
+  flex-shrink:0;
 }}
+.logo-text .t1{{font-size:14px;font-weight:700;color:#fff;line-height:1.2}}
+.logo-text .t2{{font-size:11px;color:rgba(255,255,255,.4);line-height:1.4}}
+
+/* badge */
+.badge{{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(55,222,231,.1);
+  border:1px solid rgba(55,222,231,.25);
+  color:#37DEE7;font-size:11px;font-weight:600;
+  padding:4px 10px;border-radius:20px;
+  margin-bottom:18px;letter-spacing:.3px;
+}}
+.badge::before{{content:'🔒';font-size:10px}}
+
+h1{{font-size:20px;font-weight:800;color:#fff;margin-bottom:6px;letter-spacing:-.3px}}
+.sub{{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px;line-height:1.5}}
+
+/* form */
+.field-label{{
+  font-size:11px;font-weight:700;color:rgba(255,255,255,.45);
+  text-transform:uppercase;letter-spacing:.9px;margin-bottom:7px;
+}}
+.pw-wrap{{position:relative}}
+.pw-wrap input{{
+  width:100%;
+  padding:13px 46px 13px 16px;
+  background:rgba(255,255,255,.06);
+  border:1.5px solid rgba(255,255,255,.1);
+  border-radius:12px;color:#fff;
+  font-size:15px;font-family:inherit;
+  outline:none;transition:border-color .2s,background .2s;
+}}
+.pw-wrap input:focus{{
+  border-color:rgba(55,222,231,.55);
+  background:rgba(255,255,255,.09);
+}}
+.pw-wrap input::placeholder{{color:rgba(255,255,255,.2)}}
+.eye-btn{{
+  position:absolute;right:13px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;
+  color:rgba(255,255,255,.3);padding:3px;border-radius:4px;
+  transition:color .2s;
+}}
+.eye-btn:hover{{color:rgba(255,255,255,.7)}}
+
+/* remember */
+.rem-row{{
+  display:flex;align-items:center;gap:8px;
+  margin:12px 0 20px;cursor:pointer;
+}}
+.rem-row input{{accent-color:#37DEE7;width:15px;height:15px;cursor:pointer}}
+.rem-row span{{font-size:13px;color:rgba(255,255,255,.4)}}
+
+/* button */
+.btn{{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,#0068FF 0%,#0055dd 100%);
+  border:none;border-radius:12px;
+  color:#fff;font-size:15px;font-weight:700;
+  font-family:inherit;cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,104,255,.45);
+  transition:all .18s;display:flex;
+  align-items:center;justify-content:center;gap:7px;
+}}
+.btn:hover:not(:disabled){{
+  background:linear-gradient(135deg,#1a76ff 0%,#0068FF 100%);
+  box-shadow:0 6px 24px rgba(0,104,255,.55);
+  transform:translateY(-1px);
+}}
+.btn:active{{transform:translateY(0)}}
+.btn:disabled{{opacity:.6;cursor:not-allowed}}
+
+/* error */
+.err{{
+  display:none;margin-top:12px;
+  background:rgba(239,68,68,.12);
+  border:1px solid rgba(239,68,68,.25);
+  border-radius:10px;padding:10px 14px;
+  color:#fca5a5;font-size:13px;
+}}
+
+/* spinner */
+.spin{{
+  width:15px;height:15px;
+  border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;
+  animation:rot .65s linear infinite;
+}}
+@keyframes rot{{to{{transform:rotate(360deg)}}}}
 </style>
 </head>
 <body>
-
-<!-- Gate overlay -->
-<div id="gate">
-  <div class="card">
-    <div class="logo-row">
-      <div class="logo">ZBS</div>
-      <div>
-        <div class="brand-name">Zalo Business Solutions</div>
-        <div class="brand-sub">BD & CS Performance Report</div>
-      </div>
+<div class="card">
+  <div class="logo-row">
+    <div class="logo-box">ZBS</div>
+    <div class="logo-text">
+      <div class="t1">Zalo Business Solutions</div>
+      <div class="t2">BD & CS Performance Report</div>
     </div>
-    <div class="week-tag">W21 · T5/2026 · Internal</div>
-    <h1>Xem báo cáo</h1>
-    <p class="desc">Báo cáo nội bộ — vui lòng nhập mật khẩu để tiếp tục.</p>
-    <form id="gate-form" onsubmit="checkPassword(event)">
-      <label for="pw">Mật khẩu</label>
-      <div class="input-wrap">
-        <input type="password" id="pw" placeholder="Nhập mật khẩu…" autocomplete="current-password" autofocus>
-        <button type="button" class="toggle-pw" onclick="togglePw()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
-      </div>
-      <div class="remember-row">
-        <input type="checkbox" id="remember" checked>
-        <span onclick="document.getElementById('remember').click()">Nhớ trong 7 ngày</span>
-      </div>
-      <button class="btn" type="submit" id="submit-btn">Vào báo cáo →</button>
-      <div class="error" id="err-msg">❌ Mật khẩu không đúng. Vui lòng thử lại.</div>
-    </form>
   </div>
+
+  <div class="badge">W21 · T5/2026 · Nội bộ</div>
+  <h1>Xem báo cáo</h1>
+  <p class="sub">Nhập mật khẩu để truy cập báo cáo tuần này.</p>
+
+  <form onsubmit="doLogin(event)">
+    <div class="field-label">Mật khẩu</div>
+    <div class="pw-wrap">
+      <input type="password" id="pw" placeholder="Nhập mật khẩu…" autocomplete="current-password" autofocus>
+      <button type="button" class="eye-btn" onclick="toggleEye()" id="eye-btn">
+        <svg id="eye-svg" width="17" height="17" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    </div>
+
+    <label class="rem-row">
+      <input type="checkbox" id="rem" checked>
+      <span>Nhớ trong 7 ngày</span>
+    </label>
+
+    <button class="btn" type="submit" id="btn">
+      <span id="btn-txt">Vào báo cáo</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="btn-arr">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </button>
+
+    <div class="err" id="err">❌ Mật khẩu không đúng — vui lòng thử lại.</div>
+  </form>
 </div>
 
-<!-- Report container (hidden until unlocked) -->
-<iframe id="report-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-
 <script>
-const PWD_HASH = '{PWD_HASH}';
-const STORE_KEY = 'zbs_report_auth';
-const STORE_EXP = 'zbs_report_exp';
-const CONTENT   = '{CONTENT_B64}';
+const H = '{PWD_HASH}';
+const C = '{CONTENT_B64}';
+const SK = 'zbs_h', SE = 'zbs_e';
 
-async function sha256(str) {{
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}}
+const sha = async s => {{
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}};
 
-function showReport() {{
-  const bytes = Uint8Array.from(atob(CONTENT), c => c.charCodeAt(0));
-  const html  = new TextDecoder('utf-8').decode(bytes);
-  const frame = document.getElementById('report-frame');
-  frame.srcdoc = html;
-  frame.style.display = 'block';
-  // Remove gate overlay entirely after iframe starts loading
-  frame.addEventListener('load', () => {{
-    const g = document.getElementById('gate');
-    if (g) g.remove();
-    document.body.style.overflow = 'auto';
-  }}, {{once: true}});
-}}
+const open = hash => {{
+  try{{
+    const bytes = Uint8Array.from(atob(C), c=>c.charCodeAt(0));
+    const html  = new TextDecoder().decode(bytes);
+    const url   = URL.createObjectURL(new Blob([html],{{type:'text/html;charset=utf-8'}}));
+    window.location.replace(url);
+  }} catch(e) {{ alert('Lỗi tải báo cáo: '+e.message); }}
+}};
 
-// Auto-login from storage on page load
-document.addEventListener('DOMContentLoaded', function() {{
-  try {{
-    const exp = localStorage.getItem(STORE_EXP);
-    if (exp && Date.now() > parseInt(exp)) {{
-      localStorage.removeItem(STORE_KEY);
-      localStorage.removeItem(STORE_EXP);
-      return;
-    }}
-    const stored = localStorage.getItem(STORE_KEY) || sessionStorage.getItem(STORE_KEY);
-    if (stored === PWD_HASH) {{ showReport(); }}
-  }} catch(e) {{}}
-}});
+// auto-login
+(async()=>{{
+  try{{
+    const exp = localStorage.getItem(SE);
+    if(exp && Date.now()>+exp){{ localStorage.removeItem(SK); localStorage.removeItem(SE); return; }}
+    const h = localStorage.getItem(SK)||sessionStorage.getItem(SK);
+    if(h===H) open(h);
+  }}catch{{}}
+}})();
 
-async function checkPassword(e) {{
+async function doLogin(e){{
   e.preventDefault();
   const pw = document.getElementById('pw').value.trim();
-  if (!pw) return;
-  const btn = document.getElementById('submit-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Đang kiểm tra…';
-  document.getElementById('err-msg').style.display = 'none';
-  const hash = await sha256(pw);
-  if (hash === PWD_HASH) {{
-    if (document.getElementById('remember').checked) {{
-      localStorage.setItem(STORE_KEY, hash);
-      localStorage.setItem(STORE_EXP, Date.now() + 7*24*60*60*1000);
-    }} else {{
-      sessionStorage.setItem(STORE_KEY, hash);
-    }}
-    showReport();
+  if(!pw) return;
+  const btn=document.getElementById('btn');
+  btn.disabled=true;
+  document.getElementById('btn-txt').textContent='Đang kiểm tra…';
+  document.getElementById('btn-arr').style.display='none';
+  btn.insertAdjacentHTML('afterbegin','<span class="spin"></span>');
+  document.getElementById('err').style.display='none';
+
+  const h = await sha(pw);
+  if(h===H){{
+    const rem = document.getElementById('rem').checked;
+    if(rem){{ localStorage.setItem(SK,h); localStorage.setItem(SE,Date.now()+7*864e5); }}
+    else    sessionStorage.setItem(SK,h);
+    open(h);
   }} else {{
-    document.getElementById('err-msg').style.display = 'block';
-    btn.disabled = false;
-    btn.innerHTML = 'Vào báo cáo →';
-    document.getElementById('pw').value = '';
+    document.getElementById('err').style.display='block';
+    btn.disabled=false; btn.querySelector('.spin')?.remove();
+    document.getElementById('btn-txt').textContent='Vào báo cáo';
+    document.getElementById('btn-arr').style.display='';
+    document.getElementById('pw').value='';
     document.getElementById('pw').focus();
   }}
 }}
 
-function togglePw() {{
-  const el = document.getElementById('pw');
-  el.type = el.type === 'password' ? 'text' : 'password';
+function toggleEye(){{
+  const i=document.getElementById('pw');
+  i.type = i.type==='password'?'text':'password';
 }}
 </script>
 </body>
