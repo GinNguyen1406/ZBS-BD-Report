@@ -64,6 +64,26 @@ jobs:
             --html index.html \
             --out  index.html
 
+      - name: Setup Node.js (for staticrypt)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Encrypt HTML with staticrypt
+        env:
+          REPORT_PASSWORD: ${{ secrets.REPORT_PASSWORD }}
+          STATICRYPT_SALT:  ${{ secrets.STATICRYPT_SALT }}
+        run: |
+          echo "🔐 Encrypting index.html with staticrypt..."
+          # Encrypt to temp dir, then replace original
+          npx staticrypt@3 index.html \
+            --password  "$REPORT_PASSWORD" \
+            --salt      "$STATICRYPT_SALT" \
+            --remember  7 \
+            --directory ./encrypted/
+          cp ./encrypted/index.html ./index.html
+          echo "✅ Encrypted!"
+
       - name: Commit and push
         run: |
           git config user.name  "github-actions[bot]"
@@ -73,7 +93,7 @@ jobs:
             echo "ℹ️ No changes to commit."
           else
             TIMESTAMP=$(TZ='Asia/Ho_Chi_Minh' date +'%d/%m/%Y %H:%M')
-            git commit -m "🔄 Auto-refresh: HubSpot activities — $TIMESTAMP ICT"
+            git commit -m "🔄 Auto-refresh + encrypt — $TIMESTAMP ICT"
             git push
-            echo "✅ Pushed updated report!"
+            echo "✅ Pushed encrypted report!"
           fi

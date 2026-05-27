@@ -1,0 +1,50 @@
+name: 🔐 Encrypt Report (one-time / re-key)
+
+on:
+  # Manual trigger only — run this once after setting REPORT_PASSWORD
+  workflow_dispatch:
+
+jobs:
+  encrypt:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Encrypt index.html with staticrypt
+        env:
+          REPORT_PASSWORD: ${{ secrets.REPORT_PASSWORD }}
+          STATICRYPT_SALT:  ${{ secrets.STATICRYPT_SALT }}
+        run: |
+          echo "🔐 Encrypting index.html..."
+          npx staticrypt@3 index.html \
+            --password  "$REPORT_PASSWORD" \
+            --salt      "$STATICRYPT_SALT" \
+            --remember  7 \
+            --directory ./encrypted/
+          cp ./encrypted/index.html ./index.html
+          echo "✅ Encrypted!"
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --staged --quiet; then
+            echo "ℹ️ Already encrypted, no changes."
+          else
+            TIMESTAMP=$(TZ='Asia/Ho_Chi_Minh' date +'%d/%m/%Y %H:%M')
+            git commit -m "🔐 Encrypt report — $TIMESTAMP ICT"
+            git push
+            echo "✅ Pushed encrypted report!"
+          fi
