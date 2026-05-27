@@ -1,0 +1,79 @@
+name: 🔄 Refresh BD Report
+
+on:
+  # Triggered by the Refresh button in the HTML report
+  repository_dispatch:
+    types: [refresh-report]
+
+  # Manual trigger from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      month:
+        description: 'Tháng (1-12). Để trống = tháng hiện tại'
+        required: false
+        default: ''
+      year:
+        description: 'Năm (ví dụ: 2026). Để trống = năm hiện tại'
+        required: false
+        default: ''
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # để commit + push index.html
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Resolve month/year
+        id: period
+        run: |
+          MONTH="${{ github.event.inputs.month || github.event.client_payload.month }}"
+          YEAR="${{ github.event.inputs.year || github.event.client_payload.year }}"
+          if [ -z "$MONTH" ]; then MONTH=$(date +'%-m'); fi
+          if [ -z "$YEAR" ];  then YEAR=$(date +'%Y');  fi
+          echo "month=$MONTH" >> $GITHUB_OUTPUT
+          echo "year=$YEAR"   >> $GITHUB_OUTPUT
+          echo "📅 Period: $MONTH/$YEAR"
+
+      - name: Pull HubSpot activities
+        env:
+          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+        run: |
+          echo "📥 Pulling HubSpot activities for month ${{ steps.period.outputs.month }}/${{ steps.period.outputs.year }}..."
+          python pull_bd_data.py \
+            --month ${{ steps.period.outputs.month }} \
+            --year  ${{ steps.period.outputs.year }} \
+            --qlik  bd_qlik_revenue.json \
+            --out   bd_data_latest.json
+
+      - name: Inject data into HTML
+        run: |
+          echo "💉 Injecting data into index.html..."
+          python inject_bd_data.py \
+            --data bd_data_latest.json \
+            --html index.html \
+            --out  index.html
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html bd_data_latest.json
+          if git diff --staged --quiet; then
+            echo "ℹ️ No changes to commit."
+          else
+            TIMESTAMP=$(TZ='Asia/Ho_Chi_Minh' date +'%d/%m/%Y %H:%M')
+            git commit -m "🔄 Auto-refresh: HubSpot activities — $TIMESTAMP ICT"
+            git push
+            echo "✅ Pushed updated report!"
+          fi

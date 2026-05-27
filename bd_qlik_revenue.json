@@ -1,0 +1,41 @@
+{
+  "_source": "Qlik app 3e05d419-3607-4854-b41e-54b58ac9b4fd (ZNS - Performance - New)",
+  "_field": "Sum({<month_range={\"MMM YYYY\"}>} gross_revenue)",
+  "_pulled": "2026-05-27",
+  "_note": "Values in VND. Correct field: month_range (billing period). time_ is ZNS send volume, NOT revenue.",
+  "huyenptk": {
+    "Apr": 19302348758.6,
+    "May": 15139041608.7,
+    "May2025": 11088104652.6
+  },
+  "duyenltk": {
+    "Apr": 14501263719.8,
+    "May": 11920689677.6,
+    "May2025": 8071029248.0
+  },
+  "anhpnv": {
+    "Apr": 29025054168.0,
+    "May": 24898698809.6,
+    "May2025": 15971457896.2
+  },
+  "linhld": {
+    "Apr": 8911369704.6,
+    "May": 7231298702.6,
+    "May2025": 5962712815.2
+  },
+  "lanlt2": {
+    "Apr": 3174135976.0,
+    "May": 2388863873.0,
+    "May2025": 1646451202.0
+  },
+  "huonglx": {
+    "Apr": 14094740.0,
+    "May": 15998400.0,
+    "May2025": 0
+  },
+  "vynk5": {
+    "Apr": 0,
+    "May": 0,
+    "May2025": 0
+  }
+}
