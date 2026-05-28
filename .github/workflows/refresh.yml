@@ -64,21 +64,16 @@ jobs:
             --html index_raw.html \
             --out  index_raw.html
 
-      - name: Wrap with password gate
-        env:
-          REPORT_PASSWORD: ${{ secrets.REPORT_PASSWORD }}
+      - name: Copy raw report to index
         run: |
-          echo "🔐 Wrapping with password gate..."
-          python make_gate.py \
-            --html         index_raw.html \
-            --password-env REPORT_PASSWORD \
-            --out          index.html
+          cp index_raw.html index.html
+          cp index_raw.html report.html
 
       - name: Commit and push
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html index_raw.html bd_data_latest.json
+          git add index.html report.html index_raw.html bd_data_latest.json
           if git diff --staged --quiet; then
             echo "ℹ️ No changes to commit."
           else
