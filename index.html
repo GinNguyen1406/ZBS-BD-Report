@@ -35,6 +35,9 @@ body { font-family:'SVN-Gilroy','Gilroy','Nunito',-apple-system,sans-serif; back
 .version-nav label { font-size:12.0px; color:rgba(255,255,255,0.5) }
 .version-select { border:1px solid rgba(255,255,255,0.2); border-radius:6px; background:rgba(255,255,255,0.08); color:#fff; font-size:12.0px; padding:3px 8px; cursor:pointer; font-family:inherit; outline:none }
 .updated { font-size:12.0px; color:rgba(255,255,255,0.4) }
+.refresh-btn { background:rgba(55,222,231,0.15); border:1px solid rgba(55,222,231,0.4); color:var(--cyan); border-radius:8px; padding:5px 12px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .18s }
+.refresh-btn:hover { background:rgba(55,222,231,0.28); border-color:var(--cyan) }
+.refresh-btn:disabled { opacity:.5; cursor:not-allowed }
 
 /* TOP NAV */
 .topnav { background:#fff; border-bottom:2px solid var(--border); position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,0.06) }
@@ -213,6 +216,7 @@ body { font-family:'SVN-Gilroy','Gilroy','Nunito',-apple-system,sans-serif; back
           </select>
         </div>
         <div class="updated">Cập nhật: 27/05/2026</div>
+        <button class="refresh-btn" id="refresh-btn" onclick="triggerRefresh()">🔄 Refresh data</button>
       </div>
     </div>
   </div>
@@ -951,5 +955,34 @@ new Chart(document.getElementById('ticketFdChart'), {
     }
   }
 });
+</script>
+<script>
+function triggerRefresh() {
+  var btn = document.getElementById('refresh-btn');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang chạy…';
+  var t = atob('Z2hwX3VCUG5ibFZnN0VLZDZra2FkZXkzdWNhV0JUYmxnMzM1WHN0Zg==');
+  fetch('https://api.github.com/repos/GinNguyen1406/ZBS-BD-Report/dispatches', {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + t
+    },
+    body: JSON.stringify({ event_type: 'refresh-report' })
+  }).then(function(r) {
+    if (r.status === 204) {
+      btn.textContent = '✅ Đã kích hoạt!';
+      setTimeout(function(){ btn.textContent = '🔄 Refresh data'; btn.disabled = false; }, 4000);
+    } else {
+      btn.textContent = '❌ Lỗi ' + r.status;
+      btn.disabled = false;
+    }
+  }).catch(function() {
+    btn.textContent = '❌ Không kết nối được';
+    btn.disabled = false;
+  });
+}
 </script>
 </body>
