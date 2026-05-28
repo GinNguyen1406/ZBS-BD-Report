@@ -21,9 +21,14 @@ import argparse, base64, hashlib, os, sys
 from pathlib import Path
 
 
-# ── SHA-256 of password (hex) ─────────────────────────────────────────────────
+# ── FNV-1a 32-bit hash of password (hex) ──────────────────────────────────────
+# Chosen because it's trivially portable to a 3-line browser JS implementation
+# with no async, no WebCrypto, and no large lookup tables.
 def sha256_hex(s: str) -> str:
-    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+    h = 2166136261
+    for b in s.encode("utf-8"):
+        h = ((h ^ b) * 16777619) & 0xFFFFFFFF
+    return format(h, "08x")
 
 
 # ── Gate HTML template ────────────────────────────────────────────────────────
@@ -223,63 +228,61 @@ h1{{font-size:20px;font-weight:800;color:#fff;margin-bottom:6px;letter-spacing:-
 <script>
 const H = '{PWD_HASH}';
 const C = '{CONTENT_B64}';
-const SK = 'zbs_h', SE = 'zbs_e';
+const SK='zbs_h6', SE='zbs_e6';
 
-const sha = async s => {{
-  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
-  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
-}};
+// FNV-1a 32-bit — synchronous, matches Python build-time hash exactly
+function h(s) {{
+  var r=2166136261;
+  for(var i=0;i<s.length;i++) r=Math.imul(r^s.charCodeAt(i),16777619)>>>0;
+  return ('00000000'+r.toString(16)).slice(-8);
+}}
 
-const open = hash => {{
-  try{{
-    const bytes = Uint8Array.from(atob(C), c=>c.charCodeAt(0));
-    const html  = new TextDecoder().decode(bytes);
-    document.open('text/html','replace');
-    document.write(html);
-    document.close();
-  }} catch(e) {{ alert('Lỗi mở báo cáo: '+e.message); }}
-}};
+function showReport() {{
+  try {{
+    var bytes=Uint8Array.from(atob(C),function(c){{return c.charCodeAt(0)}});
+    var html=new TextDecoder('utf-8').decode(bytes);
+    document.open(); document.write(html); document.close();
+  }} catch(ex) {{ alert('Lỗi: '+ex.message); }}
+}}
 
-// auto-login — wait for DOM ready so document.open works correctly
-window.addEventListener('DOMContentLoaded', async () => {{
-  try{{
-    const exp = localStorage.getItem(SE);
-    if(exp && Date.now()>+exp){{ localStorage.removeItem(SK); localStorage.removeItem(SE); return; }}
-    const h = localStorage.getItem(SK)||sessionStorage.getItem(SK);
-    if(h===H) open(h);
-  }}catch{{}}
+// Auto-login on load
+window.addEventListener('load', function() {{
+  try {{
+    var exp=localStorage.getItem(SE);
+    if(exp && Date.now()>+exp){{ localStorage.removeItem(SK); localStorage.removeItem(SE); }}
+    else {{
+      var stored=localStorage.getItem(SK)||sessionStorage.getItem(SK);
+      if(stored===H) showReport();
+    }}
+  }} catch(e) {{}}
 }});
 
-async function doLogin(e){{
+function doLogin(e) {{
   e.preventDefault();
-  const pw = document.getElementById('pw').value.trim();
+  var pw=(document.getElementById('pw')||{{}}).value||'';
+  pw=pw.trim();
   if(!pw) return;
-  const btn=document.getElementById('btn');
-  btn.disabled=true;
-  document.getElementById('btn-txt').textContent='Đang kiểm tra…';
-  document.getElementById('btn-arr').style.display='none';
-  btn.insertAdjacentHTML('afterbegin','<span class="spin"></span>');
-  document.getElementById('err').style.display='none';
-
-  const h = await sha(pw);
-  if(h===H){{
-    const rem = document.getElementById('rem').checked;
-    if(rem){{ localStorage.setItem(SK,h); localStorage.setItem(SE,Date.now()+7*864e5); }}
-    else    sessionStorage.setItem(SK,h);
-    open(h);
+  var hash=h(pw);
+  if(hash===H) {{
+    try {{
+      var rem=document.getElementById('rem');
+      if(rem&&rem.checked){{localStorage.setItem(SK,hash);localStorage.setItem(SE,Date.now()+7*864e5);}}
+      else sessionStorage.setItem(SK,hash);
+    }}catch(e){{}}
+    var btn=document.getElementById('btn');
+    if(btn) btn.textContent='Đang tải…';
+    showReport();
   }} else {{
-    document.getElementById('err').style.display='block';
-    btn.disabled=false; btn.querySelector('.spin')?.remove();
-    document.getElementById('btn-txt').textContent='Vào báo cáo';
-    document.getElementById('btn-arr').style.display='';
-    document.getElementById('pw').value='';
-    document.getElementById('pw').focus();
+    var err=document.getElementById('err');
+    if(err) err.style.display='block';
+    var pwEl=document.getElementById('pw');
+    if(pwEl){{pwEl.value='';pwEl.focus();}}
   }}
 }}
 
-function toggleEye(){{
-  const i=document.getElementById('pw');
-  i.type = i.type==='password'?'text':'password';
+function toggleEye() {{
+  var i=document.getElementById('pw');
+  if(i) i.type=i.type==='password'?'text':'password';
 }}
 </script>
 </body>
